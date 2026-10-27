@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document Knowledge Engine</title>
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background-color: #000000;
+            color: #f5f5f7;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 48px 20px 80px 20px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 680px;
+        }
+
+        /* Header */
+        header {
+            margin-bottom: 40px;
+            border-bottom: 1px solid #1f1f1f;
+            padding-bottom: 24px;
+        }
+
+        .brand-badge {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #888888;
+            margin-bottom: 8px;
+        }
+
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            letter-spacing: -0.5px;
+            color: #ffffff;
+            margin-bottom: 6px;
+        }
+
+        .subtitle {
+            font-size: 14px;
+            color: #888888;
+            line-height: 1.4;
+        }
+
+        /* Card / Section */
+        .card {
+            background-color: #0a0a0a;
+            border: 1px solid #1e1e1e;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 24px;
+            transition: border-color 0.15s ease;
+        }
+
+        .card:focus-within {
+            border-color: #333333;
+        }
+
+        .card-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1.2px;
+            color: #a0a0a0;
+            margin-bottom: 16px;
+        }
+
+        /* Dropzone / File area */
+        .file-upload-wrapper {
+            position: relative;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            background-color: #121212;
+            border: 1px dashed #2a2a2a;
+            border-radius: 6px;
+            padding: 14px 16px;
+            margin-bottom: 16px;
+            transition: border-color 0.15s ease, background-color 0.15s ease;
+        }
+
+        .file-upload-wrapper:hover {
+            border-color: #444444;
+            background-color: #141414;
+        }
+
+        input[type="file"] {
+            width: 100%;
+            font-size: 13px;
+            color: #888888;
+            cursor: pointer;
+        }
+
+        input[type="file"]::file-selector-button {
+            border: 1px solid #333333;
+            background: #1c1c1c;
+            color: #f5f5f7;
+            padding: 6px 14px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            margin-right: 14px;
+            transition: all 0.15s ease;
+        }
+
+        input[type="file"]::file-selector-button:hover {
+            background: #2a2a2a;
+            border-color: #555555;
+        }
+
+        /* Input field */
+        .input-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            background: #121212;
+            border: 1px solid #2a2a2a;
+            border-radius: 6px;
+            padding: 12px 14px;
+            color: #ffffff;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.15s ease;
+        }
+
+        input[type="text"]::placeholder {
+            color: #555555;
+        }
+
+        input[type="text"]:focus {
+            border-color: #ffffff;
+        }
+
+        /* Buttons */
+        .btn {
+            background-color: #ffffff;
+            color: #000000;
+            border: 1px solid #ffffff;
+            border-radius: 6px;
+            padding: 10px 18px;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            white-space: nowrap;
+            transition: all 0.15s ease;
+        }
+
+        .btn:hover {
+            background-color: #000000;
+            color: #ffffff;
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            background-color: #333333;
+            color: #888888;
+            border-color: #333333;
+        }
+
+        /* Status & Feedback */
+        .status-message {
+            margin-top: 12px;
+            font-size: 13px;
+            color: #888888;
+            min-height: 18px;
+        }
+
+        .status-message.error {
+            color: #ffffff;
+            font-weight: 600;
+            text-decoration: underline;
+        }
+
+        /* Answer Output Area */
+        #answer-card {
+            display: none;
+            margin-top: 24px;
+            background: #0d0d0d;
+            border: 1px solid #222222;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .answer-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #1a1a1a;
+            padding-bottom: 8px;
+        }
+
+        .answer-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: #777777;
+        }
+
+        .answer-content {
+            font-size: 14px;
+            line-height: 1.6;
+            color: #e5e5e5;
+            white-space: pre-wrap;
+        }
+
+        .sources-tag {
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 1px dashed #222222;
+            font-size: 12px;
+            color: #777777;
+        }
+
+        .sources-tag span {
+            color: #bbbbbb;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <span class="brand-badge">RAG Knowledge Base</span>
+            <h1>Document Question & Answer</h1>
+            <p class="subtitle">Index documents and retrieve contextual answers using local embeddings and language models.</p>
+        </header>
+
+        <!-- Document Upload Section -->
+        <div class="card">
+            <h2 class="card-title">Document Source</h2>
+            <form id="upload-form">
+                <div class="file-upload-wrapper">
+                    <input type="file" id="file-input" accept=".txt,.pdf" required>
+                </div>
+                <button type="submit" class="btn" id="upload-btn">Upload & Index</button>
+            </form>
+            <div id="upload-status" class="status-message"></div>
+        </div>
+
+        <!-- Query Section -->
+        <div class="card">
+            <h2 class="card-title">Inquiry</h2>
+            <form id="ask-form">
+                <div class="input-group">
+                    <input type="text" id="question-input" placeholder="Ask a question based on your documents..." required autocomplete="off">
+                    <button type="submit" class="btn" id="ask-btn">Ask</button>
+                </div>
+            </form>
+
+            <div id="answer-card">
+                <div class="answer-header">
+                    <span class="answer-label">Response</span>
+                </div>
+                <div id="answer-text" class="answer-content"></div>
+                <div id="answer-sources" class="sources-tag"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const uploadForm = document.getElementById('upload-form');
+        const uploadBtn = document.getElementById('upload-btn');
+        const uploadStatus = document.getElementById('upload-status');
+        const fileInput = document.getElementById('file-input');
+
+        const askForm = document.getElementById('ask-form');
+        const askBtn = document.getElementById('ask-btn');
+        const questionInput = document.getElementById('question-input');
+        const answerCard = document.getElementById('answer-card');
+        const answerText = document.getElementById('answer-text');
+        const answerSources = document.getElementById('answer-sources');
+
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            uploadBtn.disabled = true;
+            uploadStatus.textContent = 'Uploading and generating embeddings...';
+            uploadStatus.className = 'status-message';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                if (response.ok) {
+                    uploadStatus.textContent = result.message;
+                } else {
+                    uploadStatus.textContent = result.error || 'Upload failed.';
+                    uploadStatus.className = 'status-message error';
+                }
+            } catch (err) {
+                uploadStatus.textContent = 'Connection error during upload.';
+                uploadStatus.className = 'status-message error';
+            } finally {
+                uploadBtn.disabled = false;
+            }
+        });
+
+        askForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const question = questionInput.value.trim();
+            if (!question) return;
+
+            askBtn.disabled = true;
+            answerCard.style.display = 'block';
+            answerText.textContent = 'Searching index and generating response...';
+            answerSources.style.display = 'none';
+
+            try {
+                const response = await fetch('/ask', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question })
+                });
+                const result = await response.json();
+
+                if (response.ok) {
+                    answerText.textContent = result.answer;
+                    if (result.sources) {
+                        answerSources.style.display = 'block';
+                        answerSources.innerHTML = 'Source: <span>' + result.sources + '</span>';
+                    }
+                } else {
+                    answerText.textContent = result.error || 'Unable to generate response.';
+                }
+            } catch (err) {
+                answerText.textContent = 'Connection error during query.';
+            } finally {
+                askBtn.disabled = false;
+            }
+        });
+    </script>
+</body>
+</html>

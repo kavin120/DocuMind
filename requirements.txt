@@ -1,0 +1,8 @@
+flask
+werkzeug
+faiss-cpu
+numpy
+sentence-transformers
+transformers
+torch
+pypdf
