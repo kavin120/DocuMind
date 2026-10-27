@@ -7,7 +7,7 @@ from werkzeug.utils import secure_filename
 import faiss
 import numpy as np
 from sentence_transformers import SentenceTransformer
-from transformers import pipeline, AutoTokenizer, AutoModelForCausalLM
+from transformers import pipeline, AutoTokenizer, AutoModelForSeq2SeqLM
 import pypdf  # Added for PDF support
 
 app = Flask(__name__)
@@ -23,12 +23,13 @@ EMBEDDINGS_PATH = Path(__file__).parent / "embeddings.npy"
 CHUNKS_PATH = Path(__file__).parent / "chunks.json"
 EMBEDDING_MODEL = "sentence-transformers/all-MiniLM-L6-v2"
 
-LLM_MODEL = "facebook/opt-125m" 
-TOP_K = 3
+LLM_MODEL = "google/flan-t5-base" 
+TOP_K = 4
 
 # Global models (lazy loaded to speed up startup)
 embedder = None
-llm_pipeline = None
+llm_tokenizer = None
+llm_model = None
 
 def get_embedder():
     global embedder
@@ -37,14 +38,13 @@ def get_embedder():
     return embedder
 
 def get_llm():
-    global llm_pipeline
-    if llm_pipeline is None:
-        tokenizer = AutoTokenizer.from_pretrained(LLM_MODEL)
-        model = AutoModelForCausalLM.from_pretrained(LLM_MODEL, torch_dtype="auto", device_map="auto")
-        llm_pipeline = pipeline("text-generation", model=model, tokenizer=tokenizer, max_new_tokens=100, do_sample=True, temperature=0.7)
-    return llm_pipeline
+    global llm_tokenizer, llm_model
+    if llm_model is None:
+        llm_tokenizer = AutoTokenizer.from_pretrained(LLM_MODEL)
+        llm_model = AutoModelForSeq2SeqLM.from_pretrained(LLM_MODEL)
+    return llm_tokenizer, llm_model
 
-def load_and_chunk(docs_dir: Path, chunk_size: int = 300) -> list:
+def load_and_chunk(docs_dir: Path, chunk_size: int = 400, chunk_overlap: int = 80) -> list:
     chunks = []
     for filepath in docs_dir.glob("*"):
         if filepath.suffix.lower() not in ['.txt', '.pdf']:
@@ -65,14 +65,19 @@ def load_and_chunk(docs_dir: Path, chunk_size: int = 300) -> list:
                 print(f"Error reading PDF {filepath.name}: {e}")
                 continue
 
-        paragraphs = [p.strip() for p in text.split("\n\n") if p.strip()]
-        for para in paragraphs:
-            if len(para) <= chunk_size:
-                chunks.append({"text": para, "source": filepath.name})
-            else:
-                for i in range(0, len(para), chunk_size):
-                    chunk_text = para[i : i + chunk_size]
-                    chunks.append({"text": chunk_text, "source": filepath.name})
+        # Clean multiple newlines and whitespace
+        clean_text = " ".join(text.split())
+        if not clean_text:
+            continue
+
+        # Chunk with sliding window overlap
+        start = 0
+        while start < len(clean_text):
+            end = start + chunk_size
+            chunk = clean_text[start:end].strip()
+            if chunk:
+                chunks.append({"text": chunk, "source": filepath.name})
+            start += chunk_size - chunk_overlap
     return chunks
 
 def build_index():
@@ -168,13 +173,19 @@ def ask_question():
 
     # Generate Answer
     context = "\n\n".join([c["text"] for c in retrieved])
-    prompt = f"Answer the question based only on the context below.\nContext:\n{context}\n\nQuestion: {query}\nAnswer:"
+    prompt = f"Please read the following context and answer the question accurately.\n\nContext:\n{context}\n\nQuestion: {query}\nAnswer:"
     
-    generator = get_llm()
-    answer = generator(prompt, return_full_text=False)[0]["generated_text"].strip()
+    tokenizer, model = get_llm()
+    inputs = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=1024)
+    outputs = model.generate(**inputs, max_new_tokens=100)
+    answer = tokenizer.decode(outputs[0], skip_special_tokens=True).strip()
     sources = ", ".join(list(set(c["source"] for c in retrieved)))
 
-    return jsonify({'answer': answer, 'sources': sources})
+    return jsonify({
+        'answer': answer, 
+        'sources': sources,
+        'context_snippets': [c["text"] for c in retrieved[:2]]
+    })
 
 if __name__ == '__main__':
     # Run the Flask app
