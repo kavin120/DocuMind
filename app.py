@@ -118,11 +118,27 @@ def upload_file():
         
     allowed_exts = ['.txt', '.pdf']
     if file and any(file.filename.lower().endswith(ext) for ext in allowed_exts):
+        # Clear previous documents so only the new file is indexed
+        for old_file in app.config['UPLOAD_FOLDER'].glob("*"):
+            if old_file.is_file():
+                try:
+                    old_file.unlink()
+                except Exception as e:
+                    print(f"Error removing old file {old_file.name}: {e}")
+
+        # Remove old index artifacts
+        for artifact in [INDEX_PATH, EMBEDDINGS_PATH, CHUNKS_PATH]:
+            if artifact.exists():
+                try:
+                    artifact.unlink()
+                except Exception as e:
+                    print(f"Error removing {artifact.name}: {e}")
+
         filename = secure_filename(file.filename)
         file.save(app.config['UPLOAD_FOLDER'] / filename)
         # Rebuild index on new upload
         build_index()
-        return jsonify({'message': 'File uploaded and indexed successfully.'})
+        return jsonify({'message': f'Previous documents cleared. {filename} uploaded and indexed successfully.'})
     return jsonify({'error': 'Only .txt and .pdf files are allowed'}), 400
 
 @app.route('/ask', methods=['POST'])
